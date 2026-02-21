@@ -49,7 +49,7 @@ docker run -d \
   garybowers/bootimus:latest
 
 # Check logs for admin password
-docker logs bootimus | grep "Admin password"
+docker logs bootimus | grep "Password"
 
 # Access admin interface
 open http://localhost:8081
@@ -253,4 +253,3 @@ Contributions welcome! Please open an issue or pull request.
 - **GitHub**: https://github.com/garybowers/bootimus
 - **Docker Hub**: https://hub.docker.com/r/garybowers/bootimus
 - **Documentation**: https://github.com/garybowers/bootimus/tree/main/docs
-

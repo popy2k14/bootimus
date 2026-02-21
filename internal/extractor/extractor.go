@@ -14,6 +14,21 @@ import (
 	"github.com/kdomanski/iso9660"
 )
 
+func safeGetChildren(dir *iso9660.File) ([]*iso9660.File, error) {
+	all, err := dir.GetAllChildren()
+	if err != nil {
+		return nil, err
+	}
+	filtered := make([]*iso9660.File, 0, len(all))
+	for _, f := range all {
+		name := f.Name()
+		if name != "\x00" && name != "\x01" && name != "." && name != ".." {
+			filtered = append(filtered, f)
+		}
+	}
+	return filtered, nil
+}
+
 type BootFiles struct {
 	Kernel          string
 	Initrd          string
@@ -329,7 +344,7 @@ func findCasperVariant(img *iso9660.Image) *BootFiles {
 		return nil
 	}
 
-	children, err := rootDir.GetChildren()
+	children, err := safeGetChildren(rootDir)
 	if err != nil {
 		return nil
 	}
@@ -355,7 +370,7 @@ func findInstallVariant(img *iso9660.Image) *BootFiles {
 		return nil
 	}
 
-	children, err := rootDir.GetChildren()
+	children, err := safeGetChildren(rootDir)
 	if err != nil {
 		return nil
 	}
@@ -383,7 +398,7 @@ func findKernelInitrd(img *iso9660.Image, dir, kernelPrefix, initrdPrefix string
 		return nil
 	}
 
-	children, err := dirFile.GetChildren()
+	children, err := safeGetChildren(dirFile)
 	if err != nil {
 		log.Printf("Failed to get children of %s: %v", dir, err)
 		return nil
@@ -523,7 +538,7 @@ func (e *Extractor) detectNixOS(img *iso9660.Image) (*BootFiles, error) {
 		return nil, fmt.Errorf("not NixOS: /boot/nix/store not found")
 	}
 
-	children, err := storeDir.GetChildren()
+	children, err := safeGetChildren(storeDir)
 	if err != nil {
 		return nil, fmt.Errorf("not NixOS: failed to read /boot/nix/store")
 	}
@@ -697,7 +712,7 @@ func (e *Extractor) extractISOContents(img *iso9660.Image, destDir string) error
 }
 
 func (e *Extractor) extractDirectory(dir *iso9660.File, destPath, isoPath string) error {
-	children, err := dir.GetChildren()
+	children, err := safeGetChildren(dir)
 	if err != nil {
 		log.Printf("Warning: failed to get children of %s: %v (skipping)", isoPath, err)
 		return nil
@@ -846,7 +861,7 @@ func findFile(img *iso9660.Image, path string) (*iso9660.File, error) {
 			continue
 		}
 
-		children, err := current.GetChildren()
+		children, err := safeGetChildren(current)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get children: %w", err)
 		}
@@ -864,6 +879,21 @@ func findFile(img *iso9660.Image, path string) (*iso9660.File, error) {
 				current = child
 				found = true
 				break
+			}
+		}
+
+		// ISO9660 Level 1 replaces dots with underscores in directory names,
+		// so try matching with that substitution if exact match failed.
+		if !found {
+			normalizedPart := strings.ToUpper(strings.ReplaceAll(part, ".", "_"))
+			for _, child := range children {
+				normalizedChild := strings.ToUpper(strings.ReplaceAll(child.Name(), ".", "_"))
+				if normalizedChild == normalizedPart {
+					log.Printf("Matched '%s' with '%s' (ISO9660 name normalization)", part, child.Name())
+					current = child
+					found = true
+					break
+				}
 			}
 		}
 

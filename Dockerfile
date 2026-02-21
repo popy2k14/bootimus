@@ -1,4 +1,4 @@
-FROM gcr.io/distroless/static-debian13
+FROM debian:trixie-slim
 
 COPY bootimus /bootimus
 
