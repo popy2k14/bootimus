@@ -500,3 +500,50 @@ sudo nmap --script broadcast-dhcp-discover
 -  Set up [Admin Console](admin.md) for management
 -  Configure [Client Management](clients.md) for access control
 -  Review [Security Guide](security.md) for hardening
+
+
+## Pi-hole (dnsmasq)
+
+Pi-hole uses `dnsmasq` for its DHCP engine, which allows for granular architecture detection using configuration files.
+
+### Via Web Interface
+
+#### 1. Enable DHCP
+* Navigate to **Settings** > **DHCP**.
+* Check **DHCP server enabled**.
+* Define your **IP range**, **Gateway**, and **Lease duration**.
+* *Note: Detailed PXE options are not available in the Web UI and must be configured via CLI.*
+
+---
+
+### Via Command Line (CLI)
+
+
+
+To support BIOS and UEFI simultaneously, you must create a custom configuration file in the `dnsmasq.d` directory.
+
+#### 1. Create the Config File
+* Open a terminal on your Pi-hole and create the file:
+    `sudo nano /etc/dnsmasq.d/07-pxe.conf`
+
+#### 2. Define the Logic
+* Paste the following block into the file, replacing `<BOOT_SERVER_IP>` with your actual server IP:
+
+```bash
+# 1. Identify client architecture (Option 93)
+dhcp-match=set:bios,option:client-arch,0
+dhcp-match=set:efi-x64,option:client-arch,7
+dhcp-match=set:efi-x64-alt,option:client-arch,9
+
+# 2. Set the TFTP Server IP (Option 66)
+dhcp-option=option:server-ip,<BOOT_SERVER_IP>
+
+# 3. Assign filenames based on architecture (Option 67)
+dhcp-boot=tag:bios,undionly.kpxe,,<BOOT_SERVER_IP>
+dhcp-boot=tag:efi-x64,ipxe.efi,,<BOOT_SERVER_IP>
+dhcp-boot=tag:efi-x64-alt,ipxe.efi,,<BOOT_SERVER_IP>
+
+# 4. Optional: PXE Menu/Service definitions
+pxe-service=tag:bios,x86PC,"Network Boot BIOS",undionly.kpxe,<BOOT_SERVER_IP>
+pxe-service=tag:efi-x64,x86-64_EFI,"Network Boot UEFI",ipxe.efi,<BOOT_SERVER_IP>
+pxe-service=tag:efi-x64-alt,x86-64_EFI,"Network Boot UEFI (Alt)",ipxe.efi,<BOOT_SERVER_IP>
