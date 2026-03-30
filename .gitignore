@@ -32,4 +32,5 @@ go.work
 *~
 
 .admin_password
+dist/
 bootloaders/bootenv/
