@@ -22,6 +22,10 @@ RUN CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
 # Alias for runtime stage
 RUN cp /out/bootimus-${TARGETOS}-${TARGETARCH} /out/bootimus
 
+# Stage for exporting binaries only
+FROM scratch AS binaries
+COPY --from=builder /out/ /
+
 # Stage 2: Runtime
 FROM debian:trixie-slim
 

@@ -1,4 +1,0 @@
-#!ipxe
-dhcp
-chain http://${next-server}:8080/autoexec.ipxe?mac=${net0/mac} ||
-chain tftp://${next-server}/autoexec.ipxe || shell

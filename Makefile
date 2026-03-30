@@ -72,13 +72,12 @@ binaries:
 	docker buildx create --use --name bootimus-builder --driver docker-container 2>/dev/null || docker buildx use bootimus-builder
 	docker buildx build \
 		--platform $(PLATFORMS) \
-		--target builder \
+		--target binaries \
 		--build-arg VERSION=$(VERSION) \
 		--output type=local,dest=./dist .
 	@# Flatten platform directories into release binaries
 	@for dir in dist/*/; do \
-		plat=$$(basename "$$dir"); \
-		for f in "$$dir"out/bootimus-*; do \
+		for f in "$$dir"bootimus-*; do \
 			cp "$$f" "./"; \
 		done; \
 	done
