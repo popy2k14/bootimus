@@ -113,6 +113,7 @@ func (s *SQLiteStore) DeleteImage(filename string) error {
 	if err := s.db.Where("filename = ?", filename).First(&image).Error; err != nil {
 		return err
 	}
+	s.db.Exec("DELETE FROM client_images WHERE image_id = ?", image.ID)
 	s.db.Unscoped().Where("image_id = ?", image.ID).Delete(&models.CustomFile{})
 	s.db.Unscoped().Where("image_id = ?", image.ID).Delete(&models.BootLog{})
 	return s.db.Unscoped().Delete(&image).Error

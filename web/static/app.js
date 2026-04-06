@@ -2110,6 +2110,8 @@ function setupUpload() {
             });
 
             xhr.open('POST', `${API_BASE}/images/upload`);
+            const token = getToken();
+            if (token) xhr.setRequestHeader('Authorization', 'Bearer ' + token);
             xhr.send(formData);
 
             const data = await uploadPromise;
@@ -3227,6 +3229,28 @@ function switchPropsTab(tabName) {
     }
 }
 
+function getDefaultBootParams(img) {
+    if (img.boot_method !== 'kernel' || !img.extracted) return '';
+    switch (img.distro) {
+        case 'arch':
+            return 'archiso_http_srv={{BASE_URL}}/boot/{{CACHE_DIR}}/iso/ ip=dhcp';
+        case 'nixos':
+            return 'ip=dhcp';
+        case 'fedora':
+        case 'centos':
+            return 'root=live:{{BASE_URL}}/isos/{{FILENAME}} rd.live.image inst.repo={{BASE_URL}}/boot/{{CACHE_DIR}}/iso/ inst.stage2={{BASE_URL}}/boot/{{CACHE_DIR}}/iso/ rd.neednet=1 ip=dhcp';
+        case 'debian':
+            return img.squashfs_path ? 'initrd=initrd priority=critical fetch={{SQUASHFS}}' : 'initrd=initrd priority=critical';
+        case 'ubuntu':
+            if (img.squashfs_path) return 'initrd=initrd ip=dhcp fetch={{SQUASHFS}}';
+            return 'initrd=initrd ip=dhcp url={{BASE_URL}}/isos/{{FILENAME}}';
+        case 'freebsd':
+            return 'vfs.root.mountfrom=cd9660:/dev/md0 kernelname=/boot/kernel/kernel';
+        default:
+            return 'iso-url={{BASE_URL}}/isos/{{FILENAME}} ip=dhcp';
+    }
+}
+
 async function showImagePropertiesModal(filename) {
     const img = images.find(i => i.filename === filename);
     if (!img) return;
@@ -3242,6 +3266,7 @@ async function showImagePropertiesModal(filename) {
     document.getElementById('image-props-order').value = img.order || 0;
     document.getElementById('image-props-boot-method').value = img.boot_method || 'sanboot';
     document.getElementById('image-props-boot-params').value = img.boot_params || '';
+    document.getElementById('image-props-boot-params').placeholder = getDefaultBootParams(img) || 'Optional kernel parameters';
     document.getElementById('image-props-enabled').checked = img.enabled;
     document.getElementById('image-props-public').checked = img.public;
 

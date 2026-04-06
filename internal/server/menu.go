@@ -266,17 +266,18 @@ func (mb *MenuBuilder) buildImageBootSections() string {
 func (mb *MenuBuilder) buildKernelBootSection(img *models.Image, encodedFilename, cacheDir string) string {
 	var sb strings.Builder
 
+	baseURL := fmt.Sprintf("http://%s:%d", mb.serverAddr, mb.httpPort)
+
 	autoInstallParam := ""
 	if img.AutoInstallEnabled {
 		autoInstallParam = " autoinstall"
 	}
 
-	bootParams := img.BootParams
+	// Resolve boot params with placeholder substitution
+	bootParams := mb.resolveBootParams(img, baseURL, encodedFilename, cacheDir)
 	if bootParams != "" {
 		bootParams = " " + bootParams
 	}
-
-	baseURL := fmt.Sprintf("http://%s:%d", mb.serverAddr, mb.httpPort)
 
 	switch img.Distro {
 	case "windows":
@@ -287,53 +288,57 @@ func (mb *MenuBuilder) buildKernelBootSection(img *models.Image, encodedFilename
 		sb.WriteString(fmt.Sprintf("initrd %s/boot/%s/iso/sources/boot.wim boot.wim || initrd %s/boot/%s/iso/SOURCES/BOOT.WIM boot.wim\n", baseURL, cacheDir, baseURL, cacheDir))
 		sb.WriteString("boot || goto failed\n")
 
-	case "arch":
-		sb.WriteString(fmt.Sprintf("kernel %s/boot/%s/vmlinuz%s%sarchiso_http_srv=%s/boot/%s/iso/ ip=dhcp\n", baseURL, cacheDir, autoInstallParam, bootParams, baseURL, cacheDir))
-		sb.WriteString(fmt.Sprintf("initrd %s/boot/%s/initrd\n", baseURL, cacheDir))
-		sb.WriteString("boot || goto failed\n")
-
-	case "nixos":
-		sb.WriteString(fmt.Sprintf("kernel %s/boot/%s/vmlinuz%s%sip=dhcp\n", baseURL, cacheDir, autoInstallParam, bootParams))
-		sb.WriteString(fmt.Sprintf("initrd %s/boot/%s/initrd\n", baseURL, cacheDir))
-		sb.WriteString("boot || goto failed\n")
-
-	case "fedora", "centos":
-		sb.WriteString(fmt.Sprintf("kernel %s/boot/%s/vmlinuz%s%sroot=live:%s/isos/%s rd.live.image inst.repo=%s/boot/%s/iso/ inst.stage2=%s/boot/%s/iso/ rd.neednet=1 ip=dhcp\n", baseURL, cacheDir, autoInstallParam, bootParams, baseURL, encodedFilename, baseURL, cacheDir, baseURL, cacheDir))
-		sb.WriteString(fmt.Sprintf("initrd %s/boot/%s/initrd\n", baseURL, cacheDir))
-		sb.WriteString("boot || goto failed\n")
-
-	case "debian":
-		if img.SquashfsPath != "" {
-			sb.WriteString(fmt.Sprintf("kernel %s/boot/%s/vmlinuz%s%sinitrd=initrd priority=critical fetch=%s/boot/%s/%s\n", baseURL, cacheDir, autoInstallParam, bootParams, baseURL, cacheDir, img.SquashfsPath))
-		} else {
-			sb.WriteString(fmt.Sprintf("kernel %s/boot/%s/vmlinuz%s%sinitrd=initrd priority=critical\n", baseURL, cacheDir, autoInstallParam, bootParams))
-		}
-		sb.WriteString(fmt.Sprintf("initrd %s/boot/%s/initrd\n", baseURL, cacheDir))
-		sb.WriteString("boot || goto failed\n")
-
-	case "ubuntu":
-		if img.NetbootAvailable {
-			sb.WriteString(fmt.Sprintf("kernel %s/boot/%s/vmlinuz%s%sinitrd=initrd ip=dhcp\n", baseURL, cacheDir, autoInstallParam, bootParams))
-		} else if img.SquashfsPath != "" {
-			sb.WriteString(fmt.Sprintf("kernel %s/boot/%s/vmlinuz%s%sinitrd=initrd ip=dhcp fetch=%s/boot/%s/%s\n", baseURL, cacheDir, autoInstallParam, bootParams, baseURL, cacheDir, img.SquashfsPath))
-		} else {
-			sb.WriteString(fmt.Sprintf("kernel %s/boot/%s/vmlinuz%s%sinitrd=initrd ip=dhcp url=%s/isos/%s\n", baseURL, cacheDir, autoInstallParam, bootParams, baseURL, encodedFilename))
-		}
-		sb.WriteString(fmt.Sprintf("initrd %s/boot/%s/initrd\n", baseURL, cacheDir))
-		sb.WriteString("boot || goto failed\n")
-
-	case "freebsd":
-		sb.WriteString(fmt.Sprintf("kernel %s/boot/%s/vmlinuz vfs.root.mountfrom=cd9660:/dev/md0 kernelname=/boot/kernel/kernel\n", baseURL, cacheDir))
-		sb.WriteString(fmt.Sprintf("initrd %s/boot/%s/initrd\n", baseURL, cacheDir))
-		sb.WriteString("boot || goto failed\n")
-
 	default:
-		sb.WriteString(fmt.Sprintf("kernel %s/boot/%s/vmlinuz%s%siso-url=%s/isos/%s ip=dhcp\n", baseURL, cacheDir, autoInstallParam, bootParams, baseURL, encodedFilename))
+		sb.WriteString(fmt.Sprintf("kernel %s/boot/%s/vmlinuz%s%s\n", baseURL, cacheDir, autoInstallParam, bootParams))
 		sb.WriteString(fmt.Sprintf("initrd %s/boot/%s/initrd\n", baseURL, cacheDir))
 		sb.WriteString("boot || goto failed\n")
 	}
 
 	return sb.String()
+}
+
+// resolveBootParams returns the kernel boot parameters for an image.
+// If the image has user-set boot_params, those are used with placeholder substitution.
+// Otherwise, distro-specific defaults are generated.
+func (mb *MenuBuilder) resolveBootParams(img *models.Image, baseURL, encodedFilename, cacheDir string) string {
+	params := img.BootParams
+
+	// If user has set boot params, use them with placeholder substitution
+	if params != "" {
+		params = strings.ReplaceAll(params, "{{BASE_URL}}", baseURL)
+		params = strings.ReplaceAll(params, "{{CACHE_DIR}}", cacheDir)
+		params = strings.ReplaceAll(params, "{{FILENAME}}", encodedFilename)
+		if img.SquashfsPath != "" {
+			params = strings.ReplaceAll(params, "{{SQUASHFS}}", fmt.Sprintf("%s/boot/%s/%s", baseURL, cacheDir, img.SquashfsPath))
+		}
+		return strings.TrimSpace(params)
+	}
+
+	// No user params — generate distro-specific defaults
+	switch img.Distro {
+	case "arch":
+		return fmt.Sprintf("archiso_http_srv=%s/boot/%s/iso/ ip=dhcp", baseURL, cacheDir)
+	case "nixos":
+		return "ip=dhcp"
+	case "fedora", "centos":
+		return fmt.Sprintf("root=live:%s/isos/%s rd.live.image inst.repo=%s/boot/%s/iso/ inst.stage2=%s/boot/%s/iso/ rd.neednet=1 ip=dhcp", baseURL, encodedFilename, baseURL, cacheDir, baseURL, cacheDir)
+	case "debian":
+		if img.SquashfsPath != "" {
+			return fmt.Sprintf("initrd=initrd priority=critical fetch=%s/boot/%s/%s", baseURL, cacheDir, img.SquashfsPath)
+		}
+		return "initrd=initrd priority=critical"
+	case "ubuntu":
+		if img.NetbootAvailable {
+			return "initrd=initrd ip=dhcp"
+		} else if img.SquashfsPath != "" {
+			return fmt.Sprintf("initrd=initrd ip=dhcp fetch=%s/boot/%s/%s", baseURL, cacheDir, img.SquashfsPath)
+		}
+		return fmt.Sprintf("initrd=initrd ip=dhcp url=%s/isos/%s", baseURL, encodedFilename)
+	case "freebsd":
+		return "vfs.root.mountfrom=cd9660:/dev/md0 kernelname=/boot/kernel/kernel"
+	default:
+		return fmt.Sprintf("iso-url=%s/isos/%s ip=dhcp", baseURL, encodedFilename)
+	}
 }
 
 func (mb *MenuBuilder) buildFooter() string {
