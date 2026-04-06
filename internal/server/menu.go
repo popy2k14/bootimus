@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/url"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -409,6 +410,9 @@ func (mb *MenuBuilder) getUngroupedImages() []models.Image {
 			result = append(result, img)
 		}
 	}
+	sort.Slice(result, func(i, j int) bool {
+		return strings.ToLower(result[i].Name) < strings.ToLower(result[j].Name)
+	})
 	return result
 }
 
@@ -431,6 +435,9 @@ func (mb *MenuBuilder) getGroupImages(groupID uint) []models.Image {
 			result = append(result, img)
 		}
 	}
+	sort.Slice(result, func(i, j int) bool {
+		return strings.ToLower(result[i].Name) < strings.ToLower(result[j].Name)
+	})
 	return result
 }
 

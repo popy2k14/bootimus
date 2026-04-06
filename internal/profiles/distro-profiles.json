@@ -1,5 +1,5 @@
 {
-  "version": "0.1.21",
+  "version": "0.1.24",
   "profiles": [
     {
       "id": "ubuntu",
@@ -81,7 +81,7 @@
       "kernel_paths": ["/arch/boot/x86_64/vmlinuz-linux", "/boot/vmlinuz-linux", "/arch/boot/x86_64/vmlinuz-linux", "/boot/vmlinuz-linux-cachyos", "/boot/vmlinuz-linux-zen", "/boot/vmlinuz-linux-lts"],
       "initrd_paths": ["/arch/boot/x86_64/initramfs-linux.img", "/boot/initramfs-linux.img", "/arch/boot/x86_64/archiso.img", "/boot/initramfs-linux-cachyos.img", "/boot/initramfs-linux-zen.img", "/boot/initramfs-linux-lts.img"],
       "squashfs_paths": ["/arch/x86_64/airootfs.sfs"],
-      "default_boot_params": "archisobasedir=arch archiso_http_srv={{BASE_URL}}/boot/{{CACHE_DIR}}/iso/ ip=dhcp",
+      "default_boot_params": "archisobasedir=arch archiso_http_srv={{BASE_URL}}/isos/{{FILENAME}} ip=dhcp",
       "auto_install_type": ""
     },
     {
@@ -92,7 +92,7 @@
       "kernel_paths": ["/boot/vmlinuz-x86_64", "/manjaro/boot/x86_64/manjaro"],
       "initrd_paths": ["/boot/initramfs-x86_64.img", "/manjaro/boot/x86_64/manjaro.img"],
       "squashfs_paths": [],
-      "default_boot_params": "ip=dhcp",
+      "default_boot_params": "",
       "auto_install_type": ""
     },
     {
@@ -103,7 +103,7 @@
       "kernel_paths": ["/images/pxeboot/vmlinuz"],
       "initrd_paths": ["/images/pxeboot/initrd.img"],
       "squashfs_paths": ["/LiveOS/squashfs.img"],
-      "default_boot_params": "root=live:{{BASE_URL}}/isos/{{FILENAME}} rd.live.image inst.repo={{BASE_URL}}/boot/{{CACHE_DIR}}/iso/ inst.stage2={{BASE_URL}}/boot/{{CACHE_DIR}}/iso/ rd.neednet=1 ip=dhcp",
+      "default_boot_params": "root=live:{{BASE_URL}}/isos/{{FILENAME}} rd.live.image inst.repo={{BASE_URL}}/boot/{{CACHE_DIR}}/iso/ inst.stage2={{BASE_URL}}/boot/{{CACHE_DIR}}/iso/ rd.neednet=1",
       "auto_install_type": "kickstart"
     },
     {
@@ -114,7 +114,7 @@
       "kernel_paths": ["/images/pxeboot/vmlinuz"],
       "initrd_paths": ["/images/pxeboot/initrd.img"],
       "squashfs_paths": ["/LiveOS/squashfs.img"],
-      "default_boot_params": "root=live:{{BASE_URL}}/isos/{{FILENAME}} rd.live.image inst.repo={{BASE_URL}}/boot/{{CACHE_DIR}}/iso/ inst.stage2={{BASE_URL}}/boot/{{CACHE_DIR}}/iso/ rd.neednet=1 ip=dhcp",
+      "default_boot_params": "root=live:{{BASE_URL}}/isos/{{FILENAME}} rd.live.image inst.repo={{BASE_URL}}/boot/{{CACHE_DIR}}/iso/ inst.stage2={{BASE_URL}}/boot/{{CACHE_DIR}}/iso/ rd.neednet=1",
       "auto_install_type": "kickstart"
     },
     {
@@ -125,7 +125,7 @@
       "kernel_paths": ["/boot/bzImage", "/boot/vmlinuz"],
       "initrd_paths": ["/boot/initrd"],
       "squashfs_paths": ["/nix-store.squashfs"],
-      "default_boot_params": "ip=dhcp",
+      "default_boot_params": "",
       "auto_install_type": ""
     },
     {
@@ -136,7 +136,7 @@
       "kernel_paths": ["/boot/x86_64/loader/linux"],
       "initrd_paths": ["/boot/x86_64/loader/initrd"],
       "squashfs_paths": [],
-      "default_boot_params": "install={{BASE_URL}}/boot/{{CACHE_DIR}}/iso/ ip=dhcp",
+      "default_boot_params": "install={{BASE_URL}}/boot/{{CACHE_DIR}}/iso/",
       "auto_install_type": ""
     },
     {
