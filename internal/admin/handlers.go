@@ -157,17 +157,20 @@ func buildStartnetScript(serverAddr, shareName string, smbPort int) string {
 	}
 	return fmt.Sprintf(`@echo off
 wpeinit
+echo Acquiring DHCP lease...
+ipconfig /renew >nul 2>&1
+
 echo Waiting for network...
 set /a TRIES=0
 :waitnet
 ping -n 1 -w 1000 %s >nul 2>&1
 if not errorlevel 1 goto netready
 set /a TRIES+=1
-if %%TRIES%% geq 30 goto netfail
-timeout /t 1 /nobreak >nul
+if %%TRIES%% geq 60 goto netfail
+ping 127.0.0.1 -n 2 >nul 2>&1
 goto waitnet
 :netfail
-echo ERROR: Could not reach %s after 30 seconds.
+echo ERROR: Could not reach %s after 60 seconds.
 echo Dropping to shell. Try: ipconfig, ping %s
 echo Type 'exit' to reboot.
 cmd.exe
@@ -180,12 +183,12 @@ set /a TRIES=0
 net use Z: \\%s\%s /persistent:no >nul 2>&1
 if not errorlevel 1 goto mapped
 set /a TRIES+=1
-if %%TRIES%% geq 10 goto mapfail
-timeout /t 2 /nobreak >nul
+if %%TRIES%% geq 30 goto mapfail
+ping 127.0.0.1 -n 4 >nul 2>&1
 goto mapshare
 :mapfail
 echo.
-echo ERROR: Failed to connect to \\%s\%s (SMB port %d)
+echo ERROR: Failed to connect to \\%s\%s after 90 seconds (SMB port %d)
 echo Dropping to shell for debugging. Try: net use Z: \\%s\%s
 echo Type 'exit' to reboot.
 cmd.exe
