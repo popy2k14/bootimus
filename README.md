@@ -68,7 +68,7 @@ open http://localhost:8081
 ```
 
 A docker logo is available, see Bootimus `bootimus_logo.png`.
-Ex.: it can be used with unraid with: https://raw.githubusercontent.com/garybowers/bootimus/bootimus_logo.png
+Ex.: it can be used with unraid with: https://raw.githubusercontent.com/garybowers/bootimus/logos/bootimus_logo_square_ulow.png
 
 ### Standalone Binary
 
