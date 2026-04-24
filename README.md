@@ -1,4 +1,8 @@
-# Bootimus - Modern PXE/HTTP Boot Server
+<p align="center">
+  <img src="logos/bootimus_logo_none_bg.png" alt="bootimus">
+</p>
+
+# Modern PXE/HTTP Boot Server
 
 **A production-ready, self-contained PXE and HTTP boot server** written in Go with embedded iPXE bootloaders, SQLite/PostgreSQL support, and a full-featured web admin interface. Deploy in seconds with a single binary or Docker container.
 
@@ -64,7 +68,7 @@ open http://localhost:8081
 ```
 
 A docker logo is available, see Bootimus `bootimus_logo.png`.
-Ex.: it can be used with unraid with: https://raw.githubusercontent.com/garybowers/bootimus/bootimus_logo.png
+Ex.: it can be used with unraid with: https://raw.githubusercontent.com/garybowers/bootimus/logos/bootimus_logo_square_ulow.png
 
 ### Standalone Binary
 
