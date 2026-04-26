@@ -89,6 +89,10 @@ const es = {
         title: 'Corre en todos lados',
         body: 'Docker multi-arch (amd64/arm64), binario estático, o una imagen appliance basada en Alpine de 2 GB para flashear a USB.',
       },
+      '09': {
+        title: 'Instalaciones desatendidas',
+        body: 'Suelta autounattend.xml, kickstart, preseed o cloud-init. Adjúntalo a una imagen por defecto, sobreescríbelo por cliente. Bootimus lo inyecta al arrancar — sin clics, sin asistente.',
+      },
     },
   },
 

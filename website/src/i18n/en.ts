@@ -65,6 +65,7 @@ export default {
       '06': { title: 'JWT + LDAP', body: 'Token auth with bcrypt. Optional LDAP/AD backend with group-based admin. Local accounts stay as fallback.' },
       '07': { title: 'REST API', body: 'Everything the UI does is an API call. Script boot assignments, scans, WOL triggers. Live log stream over SSE.' },
       '08': { title: 'Runs anywhere', body: 'Multi-arch Docker (amd64/arm64), static binary, or a 2GB Alpine-based appliance image you can flash to USB.' },
+      '09': { title: 'Unattended installs', body: 'Drop autounattend.xml, kickstart, preseed, or cloud-init in. Attach to an image as the default, override per client. Bootimus stages it at boot — no clicks, no setup wizard.' },
     },
   },
 

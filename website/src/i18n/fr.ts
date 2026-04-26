@@ -89,6 +89,10 @@ const fr = {
         title: 'Tourne partout',
         body: 'Docker multi-arch (amd64/arm64), binaire statique, ou une image appliance Alpine de 2 Go à flasher sur USB.',
       },
+      '09': {
+        title: 'Installations sans surveillance',
+        body: 'Déposez autounattend.xml, kickstart, preseed ou cloud-init. Attachez à une image par défaut, surchargez par client. Bootimus l\'injecte au boot — zéro clic, zéro assistant.',
+      },
     },
   },
 

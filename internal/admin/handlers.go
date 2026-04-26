@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -880,114 +879,116 @@ func (h *Handler) UploadImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
-		log.Printf("Failed to parse upload form: %v", err)
-		h.sendJSON(w, http.StatusBadRequest, Response{Success: false, Error: "Failed to parse form"})
+	reader, err := r.MultipartReader()
+	if err != nil {
+		log.Printf("Failed to read multipart body: %v", err)
+		h.sendJSON(w, http.StatusBadRequest, Response{Success: false, Error: "Invalid multipart body"})
 		return
 	}
 
-	file, header, err := r.FormFile("file")
-	if err != nil {
-		log.Printf("No file provided in upload request: %v", err)
+	var (
+		filename    string
+		filePath    string
+		size        int64
+		fileSaved   bool
+		publicValue string
+		description string
+	)
+
+	cleanup := func() {
+		if fileSaved {
+			os.Remove(filePath)
+		}
+	}
+
+	for {
+		part, err := reader.NextPart()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			cleanup()
+			log.Printf("Failed to read multipart part: %v", err)
+			h.sendJSON(w, http.StatusBadRequest, Response{Success: false, Error: "Invalid multipart body"})
+			return
+		}
+
+		switch part.FormName() {
+		case "file":
+			filename = filepath.Base(part.FileName())
+			if !strings.HasSuffix(strings.ToLower(filename), ".iso") {
+				part.Close()
+				log.Printf("Upload rejected: invalid file type: %s", filename)
+				h.sendJSON(w, http.StatusBadRequest, Response{Success: false, Error: "Only .iso files are allowed"})
+				return
+			}
+
+			filePath = filepath.Join(h.isoDir, filename)
+			if _, err := os.Stat(filePath); err == nil {
+				part.Close()
+				log.Printf("Upload rejected: file already exists on filesystem: %s", filename)
+				h.sendJSON(w, http.StatusConflict, Response{Success: false, Error: "An image with this filename already exists"})
+				return
+			}
+
+			dst, err := os.Create(filePath)
+			if err != nil {
+				part.Close()
+				log.Printf("Failed to create file %s: %v", filePath, err)
+				h.sendJSON(w, http.StatusInternalServerError, Response{Success: false, Error: "Failed to create file"})
+				return
+			}
+
+			log.Printf("Starting ISO upload: %s", filename)
+			size, err = io.Copy(dst, &progressReader{r: part, name: filename})
+			closeErr := dst.Close()
+			part.Close()
+			if err == nil {
+				err = closeErr
+			}
+			if err != nil {
+				os.Remove(filePath)
+				log.Printf("Failed to save file %s: %v", filename, err)
+				h.sendJSON(w, http.StatusInternalServerError, Response{Success: false, Error: "Failed to save file"})
+				return
+			}
+			fileSaved = true
+			log.Printf("Upload complete: %s (%d MB)", filename, size/(1024*1024))
+
+		case "public":
+			b, _ := io.ReadAll(io.LimitReader(part, 64))
+			publicValue = string(b)
+			part.Close()
+
+		case "description":
+			b, _ := io.ReadAll(io.LimitReader(part, 4096))
+			description = string(b)
+			part.Close()
+
+		default:
+			part.Close()
+		}
+	}
+
+	if !fileSaved {
 		h.sendJSON(w, http.StatusBadRequest, Response{Success: false, Error: "No file provided"})
 		return
 	}
-	defer file.Close()
 
-	if !strings.HasSuffix(strings.ToLower(header.Filename), ".iso") {
-		log.Printf("Upload rejected: invalid file type: %s", header.Filename)
-		h.sendJSON(w, http.StatusBadRequest, Response{Success: false, Error: "Only .iso files are allowed"})
-		return
-	}
-
-	var startMem runtime.MemStats
-	runtime.ReadMemStats(&startMem)
-	log.Printf("Starting ISO upload: %s (size: %d bytes) - Memory: %d MB allocated",
-		header.Filename, header.Size, startMem.Alloc/1024/1024)
-
-	filePath := filepath.Join(h.isoDir, header.Filename)
-	if _, err := os.Stat(filePath); err == nil {
-		log.Printf("Upload rejected: file already exists on filesystem: %s", header.Filename)
-		h.sendJSON(w, http.StatusConflict, Response{Success: false, Error: "An image with this filename already exists"})
-		return
-	}
-
-	dst, err := os.Create(filePath)
-	if err != nil {
-		log.Printf("Failed to create file %s: %v", filePath, err)
-		h.sendJSON(w, http.StatusInternalServerError, Response{Success: false, Error: "Failed to create file"})
-		return
-	}
-	defer dst.Close()
-
-	buf := make([]byte, 32*1024*1024)
-	var written int64
-	lastLog := int64(0)
-	logInterval := int64(100 * 1024 * 1024)
-
-	for {
-		nr, er := file.Read(buf)
-		if nr > 0 {
-			nw, ew := dst.Write(buf[0:nr])
-			if nw > 0 {
-				written += int64(nw)
-			}
-			if ew != nil {
-				err = ew
-				break
-			}
-			if nr != nw {
-				err = io.ErrShortWrite
-				break
-			}
-
-			if written-lastLog >= logInterval {
-				log.Printf("Upload progress: %s - %d MB written", header.Filename, written/(1024*1024))
-				lastLog = written
-			}
-		}
-		if er != nil {
-			if er != io.EOF {
-				err = er
-			}
-			break
-		}
-	}
-
-	if err != nil {
-		os.Remove(filePath)
-		log.Printf("Failed to save file %s: %v", header.Filename, err)
-		h.sendJSON(w, http.StatusInternalServerError, Response{Success: false, Error: "Failed to save file"})
-		return
-	}
-
-	size := written
-
-	var endMem runtime.MemStats
-	runtime.ReadMemStats(&endMem)
-	runtime.GC()
-	var afterGC runtime.MemStats
-	runtime.ReadMemStats(&afterGC)
-
-	log.Printf("Upload complete: %s (%d MB)", header.Filename, size/(1024*1024))
-	log.Printf("Memory usage - Start: %d MB, End: %d MB, After GC: %d MB",
-		startMem.Alloc/1024/1024, endMem.Alloc/1024/1024, afterGC.Alloc/1024/1024)
-
-	existingImage, err := h.storage.GetImage(header.Filename)
+	existingImage, err := h.storage.GetImage(filename)
 	if err == nil && existingImage != nil {
 		existingImage.Size = size
 		existingImage.Enabled = true
-		publicValue := r.FormValue("public")
 		if publicValue == "on" || publicValue == "true" || publicValue == "false" {
 			existingImage.Public = publicValue == "on" || publicValue == "true"
 		}
-		if r.FormValue("description") != "" {
-			existingImage.Description = r.FormValue("description")
+		if description != "" {
+			existingImage.Description = description
 		}
 
-		if err := h.storage.UpdateImage(header.Filename, existingImage); err != nil {
-			os.Remove(filePath)
-			log.Printf("Failed to update image record, file removed: %s - %v", header.Filename, err)
+		if err := h.storage.UpdateImage(filename, existingImage); err != nil {
+			cleanup()
+			log.Printf("Failed to update image record, file removed: %s - %v", filename, err)
 			h.sendJSON(w, http.StatusInternalServerError, Response{Success: false, Error: "Failed to update image record"})
 			return
 		}
@@ -997,31 +998,48 @@ func (h *Handler) UploadImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	displayName := strings.TrimSuffix(header.Filename, filepath.Ext(header.Filename))
-	publicValue := r.FormValue("public")
+	displayName := strings.TrimSuffix(filename, filepath.Ext(filename))
 	isPublic := publicValue == "on" || publicValue == "true"
 
 	image := models.Image{
-		Name:     displayName,
-		Filename: header.Filename,
-		Size:     size,
-		Enabled:  true,
-		Public:   isPublic,
-	}
-
-	if r.FormValue("description") != "" {
-		image.Description = r.FormValue("description")
+		Name:        displayName,
+		Filename:    filename,
+		Size:        size,
+		Enabled:     true,
+		Public:      isPublic,
+		Description: description,
 	}
 
 	if err := h.storage.CreateImage(&image); err != nil {
-		os.Remove(filePath)
-		log.Printf("Failed to create image record, file removed: %s - %v", header.Filename, err)
+		cleanup()
+		log.Printf("Failed to create image record, file removed: %s - %v", filename, err)
 		h.sendJSON(w, http.StatusInternalServerError, Response{Success: false, Error: "Failed to create image record"})
 		return
 	}
 
 	log.Printf("Admin: Image uploaded successfully - %s (%d MB)", image.Filename, image.Size/1024/1024)
 	h.sendJSON(w, http.StatusCreated, Response{Success: true, Message: "Image uploaded", Data: image})
+}
+
+// progressReader logs upload throughput every 100 MB so long uploads
+// surface in logs without flooding them.
+type progressReader struct {
+	r       io.Reader
+	name    string
+	read    int64
+	lastLog int64
+}
+
+func (p *progressReader) Read(b []byte) (int, error) {
+	n, err := p.r.Read(b)
+	if n > 0 {
+		p.read += int64(n)
+		if p.read-p.lastLog >= 100*1024*1024 {
+			log.Printf("Upload progress: %s - %d MB read", p.name, p.read/(1024*1024))
+			p.lastLog = p.read
+		}
+	}
+	return n, err
 }
 
 func (h *Handler) AssignImages(w http.ResponseWriter, r *http.Request) {

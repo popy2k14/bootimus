@@ -89,6 +89,10 @@ const de = {
         title: 'Läuft überall',
         body: 'Multi-Arch-Docker (amd64/arm64), statisches Binary oder ein 2-GB-Appliance-Image auf Alpine-Basis, das du per USB flashen kannst.',
       },
+      '09': {
+        title: 'Unbeaufsichtigte Installationen',
+        body: 'autounattend.xml, Kickstart, Preseed oder cloud-init reinwerfen. Pro Image als Standard hinterlegen, pro Client überschreiben. Bootimus reicht es beim Boot durch — kein Klick, kein Setup-Wizard.',
+      },
     },
   },
 

@@ -30,6 +30,7 @@ export const docsNav: DocSection[] = [
       { slug: 'admin',           title: 'Admin Console',   description: 'Web UI tour and REST API reference.' },
       { slug: 'images',          title: 'Image Management', description: 'Upload ISOs, extract kernels, netboot support.' },
       { slug: 'clients',         title: 'Client Management', description: 'MAC ACLs, auto-discovery, next boot, WoL.' },
+      { slug: 'auto-install',    title: 'Auto-Install',     description: 'Unattended Windows / Ubuntu / Debian / kickstart installs.' },
       { slug: 'distro-profiles', title: 'Distro Profiles',  description: 'Data-driven distro detection and boot params.' },
     ],
   },
