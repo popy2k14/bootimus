@@ -1,5 +1,5 @@
 {
-  "version": "0.1.62",
+  "version": "0.1.64",
   "profiles": [
     {
       "id": "ubuntu",
@@ -106,7 +106,7 @@
       "kernel_paths": ["/images/pxeboot/vmlinuz"],
       "initrd_paths": ["/images/pxeboot/initrd.img"],
       "squashfs_paths": ["/LiveOS/squashfs.img"],
-      "default_boot_params": "root=live:{{BASE_URL}}/isos/{{FILENAME}} rd.live.image inst.repo={{BASE_URL}}/boot/{{CACHE_DIR}}/iso/ inst.stage2={{BASE_URL}}/boot/{{CACHE_DIR}}/iso/ rd.neednet=1",
+      "default_boot_params": "initrd=initrd root=live:{{BASE_URL}}/isos/{{FILENAME}} rd.live.image inst.repo={{BASE_URL}}/boot/{{CACHE_DIR}}/iso/ inst.stage2={{BASE_URL}}/boot/{{CACHE_DIR}}/iso/ rd.neednet=1",
       "auto_install_type": "kickstart",
       "boot_method": "kernel"
     },
@@ -118,7 +118,7 @@
       "kernel_paths": ["/images/pxeboot/vmlinuz"],
       "initrd_paths": ["/images/pxeboot/initrd.img"],
       "squashfs_paths": ["/LiveOS/squashfs.img"],
-      "default_boot_params": "root=live:{{BASE_URL}}/isos/{{FILENAME}} rd.live.image inst.repo={{BASE_URL}}/boot/{{CACHE_DIR}}/iso/ inst.stage2={{BASE_URL}}/boot/{{CACHE_DIR}}/iso/ rd.neednet=1",
+      "default_boot_params": "initrd=initrd root=live:{{BASE_URL}}/isos/{{FILENAME}} rd.live.image inst.repo={{BASE_URL}}/boot/{{CACHE_DIR}}/iso/ inst.stage2={{BASE_URL}}/boot/{{CACHE_DIR}}/iso/ rd.neednet=1",
       "auto_install_type": "kickstart",
       "boot_method": "kernel"
     },
@@ -279,7 +279,7 @@
       "squashfs_paths": [],
       "default_boot_params": "rawbcd",
       "auto_install_type": "autounattend",
-      "boot_method": "wimboot"
+      "boot_method": "kernel"
     },
     {
       "id": "windows",
@@ -291,7 +291,7 @@
       "squashfs_paths": [],
       "default_boot_params": "",
       "auto_install_type": "autounattend",
-      "boot_method": "wimboot"
+      "boot_method": "kernel"
     },
     {
       "id": "clearlinux",

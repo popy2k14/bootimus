@@ -151,11 +151,14 @@ func (m *Manager) MatchProfile(filename string) (*models.DistroProfile, error) {
 	if err != nil {
 		return nil, err
 	}
+	return matchProfile(allProfiles, filename)
+}
 
+func matchProfile(profiles []*models.DistroProfile, filename string) (*models.DistroProfile, error) {
 	filenameLower := strings.ToLower(filename)
 
 	// Pass 1: Custom profiles — exact pattern match (highest priority)
-	for _, p := range allProfiles {
+	for _, p := range profiles {
 		if p.Custom {
 			for _, pattern := range p.FilenamePatterns {
 				if strings.Contains(filenameLower, strings.ToLower(pattern)) {
@@ -166,7 +169,7 @@ func (m *Manager) MatchProfile(filename string) (*models.DistroProfile, error) {
 	}
 
 	// Pass 2: Built-in profiles — exact pattern match
-	for _, p := range allProfiles {
+	for _, p := range profiles {
 		if !p.Custom {
 			for _, pattern := range p.FilenamePatterns {
 				if strings.Contains(filenameLower, strings.ToLower(pattern)) {
@@ -177,14 +180,14 @@ func (m *Manager) MatchProfile(filename string) (*models.DistroProfile, error) {
 	}
 
 	// Pass 3: Profile ID match (e.g. filename or distro name contains "arch", "debian", etc.)
-	for _, p := range allProfiles {
+	for _, p := range profiles {
 		if strings.Contains(filenameLower, strings.ToLower(p.ProfileID)) {
 			return p, nil
 		}
 	}
 
 	// Pass 4: Family match (e.g. distro name contains "redhat", "debian", etc.)
-	for _, p := range allProfiles {
+	for _, p := range profiles {
 		if p.Family != "" && strings.Contains(filenameLower, strings.ToLower(p.Family)) {
 			return p, nil
 		}
